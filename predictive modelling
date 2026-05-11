@@ -1,0 +1,327 @@
+# ============================================================
+# PREDICTIVE MODELING USING MACHINE LEARNING
+# ============================================================
+# Project:
+# Titanic Survival Prediction
+#
+# Features:
+# 1. Data preprocessing
+# 2. Handling missing values
+# 3. Encoding categorical variables
+# 4. Train/Test split
+# 5. Machine Learning Models:
+#       - Logistic Regression
+#       - Decision Tree
+#       - Random Forest
+# 6. Model Evaluation
+#       - Accuracy
+#       - Confusion Matrix
+#       - Classification Report
+#       - ROC Curve
+#
+# Libraries:
+# - pandas
+# - numpy
+# - matplotlib
+# - seaborn
+# - sklearn
+# ============================================================
+
+# =========================
+# IMPORT LIBRARIES
+# =========================
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    classification_report,
+    roc_curve,
+    roc_auc_score
+)
+
+# ============================================================
+# LOAD DATASET
+# ============================================================
+
+df = pd.read_csv(
+    "https://raw.githubusercontent.com/datasciencedojo/datasets/master/titanic.csv"
+)
+
+# ============================================================
+# DISPLAY DATA
+# ============================================================
+
+print("FIRST 5 ROWS")
+print(df.head())
+
+print("\nDATASET INFO")
+print(df.info())
+
+# ============================================================
+# HANDLE MISSING VALUES
+# ============================================================
+
+# Fill Age missing values with median
+df['Age'] = df['Age'].fillna(df['Age'].median())
+
+# Fill Embarked missing values with mode
+df['Embarked'] = df['Embarked'].fillna(df['Embarked'].mode()[0])
+
+# Fill Fare missing values with median
+df['Fare'] = df['Fare'].fillna(df['Fare'].median())
+
+# Drop Cabin column
+df.drop(columns=['Cabin'], inplace=True)
+
+# ============================================================
+# REMOVE UNNECESSARY COLUMNS
+# ============================================================
+
+df.drop(columns=['Name', 'Ticket', 'PassengerId'], inplace=True)
+
+# ============================================================
+# ENCODE CATEGORICAL VARIABLES
+# ============================================================
+
+encoder = LabelEncoder()
+
+df['Sex'] = encoder.fit_transform(df['Sex'])
+
+df['Embarked'] = encoder.fit_transform(df['Embarked'])
+
+# ============================================================
+# FEATURES AND TARGET
+# ============================================================
+
+X = df.drop(columns=['Survived'])
+
+y = df['Survived']
+
+# ============================================================
+# TRAIN TEST SPLIT
+# ============================================================
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+print("\nTRAINING DATA SIZE:", X_train.shape)
+print("TEST DATA SIZE:", X_test.shape)
+
+# ============================================================
+# MACHINE LEARNING MODELS
+# ============================================================
+
+# -------------------------
+# 1. Logistic Regression
+# -------------------------
+
+log_model = LogisticRegression(max_iter=1000)
+
+log_model.fit(X_train, y_train)
+
+log_pred = log_model.predict(X_test)
+
+log_accuracy = accuracy_score(y_test, log_pred)
+
+print("\n==============================")
+print("LOGISTIC REGRESSION")
+print("==============================")
+
+print("Accuracy:", log_accuracy)
+
+print("\nClassification Report")
+print(classification_report(y_test, log_pred))
+
+# -------------------------
+# 2. Decision Tree
+# -------------------------
+
+tree_model = DecisionTreeClassifier(random_state=42)
+
+tree_model.fit(X_train, y_train)
+
+tree_pred = tree_model.predict(X_test)
+
+tree_accuracy = accuracy_score(y_test, tree_pred)
+
+print("\n==============================")
+print("DECISION TREE")
+print("==============================")
+
+print("Accuracy:", tree_accuracy)
+
+print("\nClassification Report")
+print(classification_report(y_test, tree_pred))
+
+# -------------------------
+# 3. Random Forest
+# -------------------------
+
+forest_model = RandomForestClassifier(
+    n_estimators=100,
+    random_state=42
+)
+
+forest_model.fit(X_train, y_train)
+
+forest_pred = forest_model.predict(X_test)
+
+forest_accuracy = accuracy_score(y_test, forest_pred)
+
+print("\n==============================")
+print("RANDOM FOREST")
+print("==============================")
+
+print("Accuracy:", forest_accuracy)
+
+print("\nClassification Report")
+print(classification_report(y_test, forest_pred))
+
+# ============================================================
+# CONFUSION MATRIX
+# ============================================================
+
+cm = confusion_matrix(y_test, forest_pred)
+
+plt.figure(figsize=(6, 5))
+
+sns.heatmap(
+    cm,
+    annot=True,
+    fmt='d',
+    cmap='Blues'
+)
+
+plt.title("Confusion Matrix - Random Forest")
+
+plt.xlabel("Predicted")
+
+plt.ylabel("Actual")
+
+plt.show()
+
+# ============================================================
+# ROC CURVE
+# ============================================================
+
+forest_prob = forest_model.predict_proba(X_test)[:, 1]
+
+fpr, tpr, thresholds = roc_curve(y_test, forest_prob)
+
+auc_score = roc_auc_score(y_test, forest_prob)
+
+plt.figure(figsize=(8, 6))
+
+plt.plot(fpr, tpr, label=f"AUC = {auc_score:.2f}")
+
+plt.plot([0, 1], [0, 1], linestyle='--')
+
+plt.xlabel("False Positive Rate")
+
+plt.ylabel("True Positive Rate")
+
+plt.title("ROC Curve - Random Forest")
+
+plt.legend()
+
+plt.show()
+
+# ============================================================
+# FEATURE IMPORTANCE
+# ============================================================
+
+importance = forest_model.feature_importances_
+
+feature_names = X.columns
+
+feature_df = pd.DataFrame({
+    'Feature': feature_names,
+    'Importance': importance
+})
+
+feature_df = feature_df.sort_values(
+    by='Importance',
+    ascending=False
+)
+
+print("\nFEATURE IMPORTANCE")
+print(feature_df)
+
+plt.figure(figsize=(8, 6))
+
+sns.barplot(
+    x='Importance',
+    y='Feature',
+    data=feature_df
+)
+
+plt.title("Feature Importance - Random Forest")
+
+plt.show()
+
+# ============================================================
+# MODEL COMPARISON
+# ============================================================
+
+models = ['Logistic Regression', 'Decision Tree', 'Random Forest']
+
+accuracies = [
+    log_accuracy,
+    tree_accuracy,
+    forest_accuracy
+]
+
+plt.figure(figsize=(8, 5))
+
+plt.bar(models, accuracies)
+
+plt.title("Model Accuracy Comparison")
+
+plt.ylabel("Accuracy")
+
+plt.ylim(0, 1)
+
+plt.show()
+
+# ============================================================
+# BEST MODEL
+# ============================================================
+
+best_accuracy = max(accuracies)
+
+best_model = models[accuracies.index(best_accuracy)]
+
+print("\n======================================")
+print("BEST MODEL:", best_model)
+print("BEST ACCURACY:", best_accuracy)
+print("======================================")
+
+# ============================================================
+# SAVE CLEANED DATASET
+# ============================================================
+
+df.to_csv(
+    "cleaned_titanic_ml_dataset.csv",
+    index=False
+)
+
+print("\nCLEANED DATASET SAVED")
+
+# ============================================================
+# END OF PROJECT
+# ============================================================
